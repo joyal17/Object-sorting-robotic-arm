@@ -1,0 +1,566 @@
+#include <Servo.h>
+  #include <LiquidCrystal.h>
+  #include <WiFi.h>
+  #include <WiFiUdp.h>
+  #include <cstring>
+  
+  #define roat 21
+  #define hand 19
+  #define arm 18
+  #define grip 5
+
+  #define SSID "Embedded"                 // Wi-Fi User Name
+  #define PSWD "Embedded54321"            // Wi-Fi Password
+  WiFiUDP udp;
+/*************************/
+
+Servo HAND;
+Servo GRIP;
+Servo ARM;
+Servo ROAT;
+LiquidCrystal lcd(13,12,14,27,26,25);
+/********************/
+  void test();
+  void MoveBase(int);
+  void MoveHand(int);
+  void MoveArm(int);
+  void MoveGrip(int);
+  
+  void GrabFromSource();
+  void Bluecube();
+  void Redcube();
+  void Greencube();
+  void HomePOS();
+  void RedPrism();
+  void BluePrism();
+  void GreenPrism();
+  void GreenCylinder();
+  void RedCylinder();
+  void BlueCylinder();
+
+  void Connect_WiFi();
+  void UDP_RCV();
+  void UDP_Transmit(IPAddress,uint16_t,char *s);
+/********************/
+  int pos=0;
+  int BE=90,BV=90;
+  int HE=120,HV=120;
+  int AE=90,AV=90;
+  int GE=22,GV=22;
+
+  unsigned int localUdpPort = 4210;       // port to listen on
+  char incomingPacket[255];
+  String msg = "SystemReady" ;
+  String RCV_MSG = "NONE";
+/********************/
+void setup() 
+{
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  lcd.print("LCD Test");
+  
+  ROAT.attach(roat);
+  HAND.attach(hand);
+  ARM.attach(arm);
+  GRIP.attach(grip);
+  
+  ROAT.write(BV);
+  HAND.write(HV);
+  ARM.write(AV);
+  GRIP.write(GV);
+
+  Connect_WiFi();
+  
+}
+/********************/
+void loop() 
+{
+  test();
+  UDP_RCV();
+  delay(50);
+}
+/********************/
+void test()
+{
+  char x;
+  if(Serial.available())
+  {
+    x=Serial.read();
+    if(x=='a')
+    {
+      pos =Serial.parseInt();
+      Serial.println("Base(a) = "+String(pos));
+      MoveBase(pos);
+    }
+    else if(x=='b')
+    {
+      pos =Serial.parseInt();
+      Serial.println("Hand(b) = "+String(pos));
+      MoveHand(pos);
+    }
+    else if(x=='c')
+    {
+      pos =Serial.parseInt();
+      Serial.println("ARM (c)= "+String(pos));
+      MoveArm(pos);
+    }
+    else if(x=='d')
+    {
+      pos =Serial.parseInt();
+      Serial.println("Grip (d) = "+String(pos));
+      MoveGrip(pos);
+    }
+    else if(x=='e')
+    {
+      Redcube();
+    }
+    else if(x=='f')
+    {
+      Bluecube();
+    }
+    else if(x=='g')
+    {
+      Greencube();
+    }
+    else if(x=='h')
+    {
+      RedPrism();
+    }
+    else if(x=='i')
+    {
+      BluePrism();
+    }
+    else if(x=='j')
+    {
+      GreenPrism();
+    }
+    else if(x=='k')
+    {
+      GreenCylinder();
+    }
+    else if(x=='l')
+    {
+      RedCylinder();
+    }
+    else if(x=='m')
+    {
+      BlueCylinder();
+    }
+  }
+}
+/********************/
+void MoveBase(int BE)
+{
+  if(BV > BE)  // moving right
+  {
+      Serial.println("Base Moving RIGHT");
+      for(;BV>=BE;BV--)
+      {
+        ROAT.write(BV);
+        delay(20);
+      }
+  }
+  else if(BV < BE)  // moving right
+  {
+      Serial.println("Base Moving LEFT");
+      for(;BV<=BE;BV++)
+      {
+        ROAT.write(BV);
+        delay(20);
+      }
+  }
+}
+/********************/
+void MoveHand(int HE)
+{
+  if(HV > HE)  // moving right
+  {
+      Serial.println("Hand Moving RIGHT");
+      for(;HV>=HE;HV--)
+      {
+        HAND.write(HV);
+        delay(30);
+      }
+  }
+  else if(HV < HE)  // moving right
+  {
+      Serial.println("Hand Moving LEFT");
+      for(;HV<=HE;HV++)
+      {
+        HAND.write(HV);
+        delay(30);
+      }
+  }
+}
+/********************/
+void MoveArm(int AE)
+{
+  if(AV > AE)  // moving right
+  {
+      Serial.println("Arm Moving RIGHT");
+      for(;AV>=AE;AV--)
+      {
+        ARM.write(AV);
+        delay(30);
+      }
+  }
+  else if(AV < AE)  // moving right
+  {
+      Serial.println("Arm Moving LEFT");
+      for(;AV<=AE;AV++)
+      {
+        ARM.write(AV);
+        delay(30);
+      }
+  }
+}
+/********************/
+void MoveGrip(int GE)
+{
+  if(GV > GE)  // moving right
+  {
+      Serial.println("Grip Moving RIGHT");
+      for(;GV>=GE;GV--)
+      {
+        GRIP.write(GV);
+        delay(30);
+      }
+  }
+  else if(GV < GE)  // moving right
+  {
+      Serial.println("Grip Moving LEFT");
+      for(;GV<=GE;GV++)
+      {
+        GRIP.write(GV);
+        delay(30);
+      }
+  }
+}
+/********************/
+void GrabFromSource()
+{
+  MoveGrip(110);
+  MoveBase(90);
+  MoveArm(45);
+  MoveHand(178);
+  delay(500);
+  MoveGrip(22);
+}
+/********************/
+void HomePOS()
+{
+  MoveHand(120);  
+  MoveArm(95);
+  MoveBase(90);
+  delay(500);
+  MoveGrip(22);
+}
+/********************/
+void Redcube()
+{
+  lcd.clear();
+  lcd.print("Red Cube");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(40);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void Bluecube()
+{
+  lcd.clear();
+  lcd.print("Blue Cube");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(20);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void Greencube()
+{
+  lcd.clear();
+  lcd.print("Green Cube");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(0);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void RedPrism()
+{
+  lcd.clear();
+  lcd.print("Red Prism");
+  GrabFromSource();
+  MoveGrip(15);  
+  MoveHand(120);
+  MoveArm(90);
+  
+  MoveBase(160);
+  MoveArm(180);
+  MoveHand(60);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void BluePrism()
+{
+  lcd.clear();
+  lcd.print("Blue Prism");
+  GrabFromSource();
+  MoveGrip(15);  
+  MoveHand(120);
+  MoveArm(90);
+  
+  MoveBase(140);
+  MoveArm(180);
+  MoveHand(60);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void GreenPrism()
+{
+  lcd.clear();
+  lcd.print("Green Prism");
+  GrabFromSource();
+  MoveGrip(15);  
+  MoveHand(120);
+  MoveArm(90);
+  
+  MoveBase(120);
+  MoveArm(180);
+  MoveHand(60);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void GreenCylinder()
+{
+  lcd.clear();
+  lcd.print("Green Cylinder");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(120);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void RedCylinder()
+{
+  lcd.clear();
+  lcd.print("Red Cylinder");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(140);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+void BlueCylinder()
+{
+  lcd.clear();
+  lcd.print("Blue Cylinder");
+  GrabFromSource();
+  MoveGrip(18);  
+  MoveHand(120);
+  MoveArm(90);
+  MoveBase(180);
+  MoveArm(45);
+  MoveHand(180);
+  delay(500);
+  MoveGrip(50);
+  delay(500);
+  HomePOS();
+  lcd.setCursor(0,1);
+  lcd.print("Task Complete");
+}
+/********************/
+  void Connect_WiFi()
+  {
+    int i=0;
+    Serial.begin(9600);
+    WiFi.disconnect();
+    delay(1000);
+    pinMode(2, OUTPUT);
+    lcd.clear();
+    lcd.print("WiFi Connecting");
+    lcd.setCursor(0,1);
+    Serial.println("Connecting to WiFi");
+    WiFi.begin(SSID, PSWD);
+    delay(100);
+    Serial.println("");
+    while (!(WiFi.status() == WL_CONNECTED))
+    {
+      i++;
+      if(i>15)
+      {
+        i=0;
+        lcd.clear();
+        lcd.print("WiFi Connecting");
+        lcd.setCursor(0,1);
+      }
+      lcd.print("*");
+      digitalWrite(2, LOW);
+      delay(250);
+      digitalWrite(2, HIGH);
+      delay(250);
+      Serial.print("*");
+    }
+    lcd.clear();
+    lcd.print("WiFi **{ok}");
+    lcd.setCursor(0,1);
+    Serial.println("Connected to Wi-Fi");
+    udp.begin(localUdpPort);
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("PORT: ");
+    Serial.println(localUdpPort);
+    lcd.print(WiFi.localIP());
+    delay(1000);
+    
+  }
+/*************************/
+void UDP_RCV()
+{
+  uint8_t buffer[50] = "";
+  char n[10];
+  String m;
+  memset(buffer, 0, 50);
+  int packetSize = udp.parsePacket();
+  if (packetSize > 0)
+  {
+    // Get the remote IP address and port
+    IPAddress remoteIP = udp.remoteIP();    
+    uint16_t remotePort = udp.remotePort();
+
+    Serial.print("\n\nReceived from\nIP Adress : ");
+    Serial.print(remoteIP);
+    Serial.print("  PORT  : ");
+    Serial.println(remotePort);
+
+    udp.read(buffer, 50);
+    RCV_MSG = String((char *)buffer);
+    Serial.print("Server to client: ");
+    Serial.println(RCV_MSG);
+    for(int i=0; RCV_MSG[i] != '\0';i++)
+    {
+      Serial.print("RCV_MSG[");Serial.print(i);Serial.print("] > =");Serial.println(RCV_MSG[i]);
+    }
+    if(RCV_MSG == "RED_Cylinder")
+    {
+       Serial.println("Moving Red Cylinder");
+       RedCylinder();
+    }
+    else if(RCV_MSG == "RED_Cube")
+    {
+       Serial.println("Moving RED_Cube");
+       Redcube();
+    }
+    else if(RCV_MSG == "RED_Prisam")
+    {
+       Serial.println("Moving RED_Prisam");
+       RedPrism();
+    }
+    else if(RCV_MSG == "BLUE_Cube")
+    {
+       Serial.println("Moving BLUE_Cube");
+       Bluecube();
+    }
+    else if(RCV_MSG == "BLUE_Prisam")
+    {
+       Serial.println("BLUE_Prisam");
+       BluePrism();
+    }
+    else if(RCV_MSG == "BLUE_Cylinder")
+    {
+       Serial.println("BLUE_Cylinder");
+       BlueCylinder();
+    }
+    else if(RCV_MSG == "GREEN_prisam")
+    {
+       Serial.println("GREEN_prisam");
+       GreenPrism();
+    }
+    else if(RCV_MSG == "GREEN_Cube")
+    {
+       Serial.println("GREEN_Cube");
+       Greencube();
+    }
+    else if(RCV_MSG == "GREEN_Cylinder")
+    {
+       Serial.println("GREEN_Cylinder");
+       GreenCylinder();
+    }
+    UDP_Transmit(remoteIP,remotePort,&msg[0]);
+  }
+}
+/*************************/
+void UDP_Transmit(IPAddress udpAddress,uint16_t udpPort,char *s)
+{
+  int i;
+  uint8_t buffer[50] = "";
+  for (i = 0; *s != '\0'; i++, s++)
+  {
+    buffer[i] = *s;
+  }
+  buffer[i] = '\0';
+  udp.beginPacket(udpAddress, 2020);
+  udp.write(buffer, i);
+  udp.endPacket();
+}
+/*************************/
