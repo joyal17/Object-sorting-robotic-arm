@@ -1,0 +1,4 @@
+train : /content/CustomObjectDetectionDataSet/train
+val   : /content/CustomObjectDetectionDataSet/test
+nc : 9                        
+names : ['RED_Cylinder' , 'RED_Cube' , 'RED_Prisam' , 'BLUE_Cube', 'BLUE_Prisam', 'BLUE_Cylinder', 'GREEN_prisam', 'GREEN_Cube', 'GREEN_Cylinder']  
